@@ -1,0 +1,89 @@
+ARG ALPINE_VERSION="latest"
+
+FROM gautada/alpine:$ALPINE_VERSION as build
+RUN /sbin/apk add --no-cache nodejs npm yarn build-base git openjdk17 bash rlwrap
+WORKDIR /opt
+# RUN curl -O https://download.clojure.org/install/
+RUN curl -O https://download.clojure.org/install/posix-install-1.11.1.1273.sh
+RUN chmod +x ./posix-install-1.11.1.1273.sh 
+RUN ./posix-install-1.11.1.1273.sh --prefix /opt/clojure
+RUN /bin/ln -fsv /opt/clojure/bin/clj /usr/bin/clj \
+ && /bin/ln -fsv /opt/clojure/bin/clojure /usr/bin/clojure 
+RUN git clone https://github.com/logseq/logseq.git /opt/logseq
+WORKDIR /opt/logseq
+RUN yarn
+RUN yarn release
+
+WORKDIR /opt
+RUN git clone --depth 1 https://github.com/mickael-kerjean/filestash filestash
+WORKDIR /opt/filestash
+# RUN npm install --silent \
+#  && make build_frontend
+
+FROM gautada/alpine:$ALPINE_VERSION as container
+
+# ╭――――――――――――――――――――╮
+# │ METADATA           │
+# ╰――――――――――――――――――――╯
+LABEL source="https://github.com/gautada/logseq-container.git"
+LABEL maintainer="Adam Gautier <adam@gautier.org>"
+LABEL description="LogSeq container."
+
+# ╭――――――――――――――――――――╮
+# │ USER               │
+# ╰――――――――――――――――――――╯
+ARG USER="logseq"
+RUN /usr/sbin/usermod --login $USER --home /home/$USER --move-home alpine
+RUN /usr/sbin/groupmod --new-name $USER alpine
+
+# ╭――――――――――――――――――――╮
+# │ APPLICATION        │
+# ╰――――――――――――――――――――╯
+RUN /sbin/apk add --no-cache nginx nginx-mod-http-dav-ext \
+ && /sbin/apk add --no-cache samba samba-client
+
+COPY --from=build /opt/logseq/static /opt/logseq
+COPY --from=build /opt/filestash /opt/filestash
+
+RUN rm /etc/nginx/http.d/default.conf
+COPY logseq.conf /etc/nginx/http.d/default.conf 
+
+RUN /bin/mkdir -p /opt/logseq /opt/dav /opt/smb \
+ && /bin/chown nginx:www-data -R /opt/logseq /opt/dav /opt/smb 
+
+# RUN git clone --depth 1 https://github.com/mickael-kerjean/filestash /opt/filestash 
+# RUN apk add make git && \
+#     npm install --silent && \
+#     make build_frontend
+
+
+
+
+# ╭――――――――――――――――――――╮
+# │ STANDARD CONFIG    │
+# ╰――――――――――――――――――――╯
+# COPY backup /etc/container/backup
+# COPY podman.health /etc/container/health.d/podman.health
+COPY entrypoint /etc/container/entrypoint
+COPY privileges /etc/container/privileges
+
+# ╭――――――――――――――――――――╮
+# │ CONTAINER          │
+# ╰――――――――――――――――――――╯
+USER $USER
+WORKDIR /home/$USER
+
+#╭――――――――――――――――――――╮
+# │FINAL CONTAINER     │
+# ╰――――――――――――――――――――╯
+FROM scratch
+COPY --from=container / /
+ENTRYPOINT ["/usr/bin/container-entrypoint"]
+VOLUME /mnt/volumes/backup
+VOLUME /mnt/volumes/configmaps
+VOLUME /mnt/volumes/container
+VOLUME /mnt/volumes/secrets/namespace
+VOLUME /mnt/volumes/secrets/container
+EXPOSE 8080/tcp
+USER logseq
+WORKDIR /home/logseq

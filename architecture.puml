@@ -1,0 +1,72 @@
+@startuml
+!include <C4/C4.puml>
+!include <C4/C4_Context.puml>
+!include <C4/C4_Container.puml>
+!include <C4/C4_Component.puml>
+!include <C4/C4_Dynamic.puml>
+!include <C4/C4_Deployment.puml>
+
+' {System|Enterprise_}Boundary(alias, label, {?type}, ?tags, $link)
+' Person{_Ext}(alias, label, ?descr, ?sprite, ?tags, $link)
+'
+' Context
+' -------
+' System{_Ext}(alias, label, ?descr, ?sprite, ?tags, $link)
+
+' Container
+' ---------
+' Container{Db|Cache|_Ext}(alias, label, ?techn, ?descr, ?sprite, ?tags, $link)
+'
+' Component
+' ---------
+' Component{Db|Cache|_Ext}(alias, label, ?techn, ?descr, ?sprite, ?tags, ?link)
+'
+' Relationship
+' ------------
+' {Bi}Rel{Index(index|(from}, to, label, ?techn, ?descr, ?sprite, ?tags, ?link)
+'
+' Notes
+' -----
+' note "This is a note" as n1
+' link to c4 elem: n1 > alias
+'
+' [C4 PlantUML](https://plantuml-stdlib.github.io/C4-PlantUML/)
+' [Gist Template](https://gist.github.com/gautada/1ba685a39577f3a6ca90e23b42f1031a)
+' [Examples](https://purrgramming.life/cs/c4-plantuml)85a39577f3a6ca90e23b42f1031a)
+
+title "Context Diagram - Journal"
+
+Person(authuser, "Authorized User")
+
+Boundary(computer, "Client") {
+ System(browser, "Browser", "Chrome: requires xyz")
+ System(logseq, "LogSeq", "LogSeq")
+ System(journal, "Journal", "Actual jornal files")
+ System(git, "git", "Local git client") 
+ System(scripts, "Scripts", "Utility and client scripts") 
+ Rel(browser, journal, "Save")
+ Rel(logseq, journal, "Save")
+}
+
+Rel(authuser, browser, "Uses")
+Rel(authuser, logseq, "Uses")
+Rel(authuser, scripts, "Calls")
+
+System(logseq_server, "LogSeq Server", "journal.gautier.org")
+System(git_server, "git Server", "git.gautier.org")
+
+Rel(browser, logseq_server, "API")
+Rel(git, journal, "Synch")
+Rel(git, git_server, "Push")
+Rel(git_server, git, "Pull")
+Rel(logseq_server, git_server, "Push")
+Rel(git_server, logseq_server, "Pull")
+Rel(scripts, logseq_server, "Modify", "DAV")
+
+Lay_D(journal, git)
+Lay_D(git, git_server)
+
+SHOW_LEGEND()
+@enduml
+
+

@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  logseq:
+    build:
+      args:
+        DEBIAN_VERSION: "latest"
+        CONTAINER_VERSION: "0.0.1"
+      context: .
+      dockerfile: container.build
+      no_cache: true
+      tags:
+        - "logseq:dev"
+        - "gautada/logseq:dev"
+    image: "logseq:dev"
+    hostname: "logseq"
+    ports:
+      - "8080:8080"

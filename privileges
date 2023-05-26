@@ -1,0 +1,9 @@
+%privileged ALL = (ALL) NOPASSWD: /usr/sbin/crond
+
+%privileged ALL = (ALL) NOPASSWD: /sbin/apk
+
+%privileged ALL = (ALL) NOPASSWD: /usr/sbin/nginx
+
+%privileged ALL = (ALL) NOPASSWD: /usr/bin/nano
+
+
